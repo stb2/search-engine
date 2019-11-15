@@ -1,0 +1,16 @@
+{
+    "name": "stb2/search-engine",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Alban DURAND",
+            "email": "alban@lencrenoire.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Stb2\\SearchEngine\\": "src/"
+        }
+    },
+    "require": {}
+}
