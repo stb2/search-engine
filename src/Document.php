@@ -11,8 +11,8 @@ class Document
 
     public function __construct(?string $text, string $language = 'en')
     {
-        $this->setText($text);
         $this->language = $language;
+        $this->setText($text);
     }
 
     public function getLanguage(): string
@@ -28,7 +28,10 @@ class Document
             strip_tags(stripslashes(html_entity_decode($text)))
         );
 
-        if (!empty($text)) {
+        $this->text = preg_replace('/([^\s.])\.([^\s.])/', '$1. $2', $this->text);
+        $this->text = preg_replace('/(\.{3,})([^\s.])/', '$1 $2', $this->text);
+
+        if (!empty($this->text)) {
             $this->setTermsFromWords(self::extractWords($this->text));
         }
 
@@ -70,7 +73,7 @@ class Document
     public function setTermsFromWords(array $words): Document
     {
         $this->setTerms(array_map(function ($word) {
-            return new Term($word);
+            return new Term($word, $this->language);
         }, $words));
 
         return $this;

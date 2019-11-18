@@ -85,7 +85,7 @@ class Term
     public static function normalize(string $term): string
     {
         if (!self::hasBeenNormalized($term)) {
-            $normalized = preg_replace(['/^.(\'|’|´)/u', '/[^[:alpha:]]$/u'], '', $term);
+            $normalized = preg_replace(['/^.(\'|’|´|&#39;)/u', '/[^[:alpha:]]$/u'], '', $term);
             $normalized = str_replace(['’', '´'], '\'', $normalized);
             $normalized = preg_replace('/(^[^[:alpha:]0-9-]+|[^[:alpha:]0-9-]+$)/u', '', $normalized);
             $normalized = mb_strtolower($normalized);
