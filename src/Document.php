@@ -22,7 +22,11 @@ class Document
 
     public function setText(?string $text): Document
     {
-        $this->text = strip_tags(stripslashes($text));
+        $this->text = str_replace(
+            ['&#39;'],
+            ['\''],
+            strip_tags(stripslashes(html_entity_decode($text)))
+        );
 
         if (!empty($text)) {
             $this->setTermsFromWords(self::extractWords($this->text));
