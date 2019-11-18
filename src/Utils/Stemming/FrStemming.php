@@ -286,7 +286,7 @@ class FrStemming
                 $word = self::deleteAtTheEnd($word, $match[0]);
                 $rv = self::getRv($word);
 
-                if ($rv[strlen($rv) - 1] === 'e') {
+                if (strlen($rv) > 0 && $rv[strlen($rv) - 1] === 'e') {
                     return self::deleteAtTheEnd($word, 'e');
                 }
 
