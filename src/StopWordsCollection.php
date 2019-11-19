@@ -18,7 +18,9 @@ class StopWordsCollection
 
             if (is_file($filePath) && file_exists($filePath)) {
                 self::$languages[$language] = array_map(
-                    '\Stb2\SearchEngine\Term::normalize',
+                    function ($word) {
+                        return (new Term($word))->getNormalized();
+                    },
                     require $filePath
                 );
 

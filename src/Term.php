@@ -18,11 +18,17 @@ class Term
 
     public function __construct(string $term, string $language = 'en')
     {
+        array_map(function ($varname) use ($language) {
+            if (!array_key_exists($language, self::${$varname})) {
+                self::${$varname}[$language] = [];
+            }
+        }, ['termsWithoutAccents', 'normalizedTerms', 'validatedTerms', 'stemmedTerms']);
+
         $this->language = $language;
         $this->original = $term;
-        $this->normalized = self::removeAccents(self::normalize($term));
-        $this->stem = self::removeAccents(self::stem(self::normalize($term), $this->language));
-        $this->isValid = self::isValid($this->normalized);
+        $this->normalized = $this->removeAccents($this->normalize($term));
+        $this->stem = $this->removeAccents($this->stem($this->normalize($term), $this->language));
+        $this->isValid = $this->isValid($this->normalized);
     }
 
     public function getInverseDocumentFrequency(DocumentCollection $collection): float
@@ -77,54 +83,52 @@ class Term
         return null;
     }
 
-    public static function hasBeenNormalized(string $term): bool
+    public function hasBeenNormalized(string $term): bool
     {
-        return array_key_exists($term, self::$normalizedTerms);
+        return array_key_exists($term, self::$normalizedTerms[$this->language]);
     }
 
-    public static function normalize(string $term): string
+    public function normalize(string $term): string
     {
-        if (!self::hasBeenNormalized($term)) {
+        if (!$this->hasBeenNormalized($term)) {
             $normalized = preg_replace(['/^.(\'|’|´|&#39;)/u', '/[^[:alpha:]]$/u'], '', $term);
             $normalized = str_replace(['’', '´'], '\'', $normalized);
             $normalized = preg_replace('/(^[^[:alpha:]0-9-]+|[^[:alpha:]0-9-]+$)/u', '', $normalized);
             $normalized = mb_strtolower($normalized);
 
-            self::$normalizedTerms[$term] = $normalized;
+            self::$normalizedTerms[$this->language][$term] = $normalized;
         }
 
-        return self::$normalizedTerms[$term];
+        return self::$normalizedTerms[$this->language][$term];
     }
 
-    public static function hasBeenStemmed(string $term): bool
+    public function hasBeenStemmed(string $term): bool
     {
-        return array_key_exists($term, self::$stemmedTerms);
+        return array_key_exists($term, self::$stemmedTerms[$this->language]);
     }
 
-    public static function stem(string $term, $language = 'en'): string
+    public function stem(string $term): string
     {
-        if (!self::hasBeenStemmed($term)) {
-            $language = strtolower($language);
+        if (!$this->hasBeenStemmed($term)) {
+            if (Stemming\StemmingLanguageStore::has($this->language)) {
+                $stemming = Stemming\StemmingLanguageStore::get($this->language);
 
-            if (Stemming\StemmingLanguageStore::has($language)) {
-                $stemming = Stemming\StemmingLanguageStore::get($language);
-
-                self::$stemmedTerms[$term] = (new $stemming)->stem($term);
+                self::$stemmedTerms[$this->language][$term] = (new $stemming)->stem($term);
             }
         }
 
-        return self::$stemmedTerms[$term];
+        return self::$stemmedTerms[$this->language][$term];
     }
 
-    public static function accentsHaveBeenRemoved(string $term): bool
+    public function accentsHaveBeenRemoved(string $term): bool
     {
-        return array_key_exists($term, self::$termsWithoutAccents);
+        return array_key_exists($term, self::$termsWithoutAccents[$this->language]);
     }
 
-    public static function removeAccents(string $term): string
+    public function removeAccents(string $term): string
     {
-        if (!self::accentsHaveBeenRemoved($term)) {
-            self::$termsWithoutAccents[$term] = str_replace(
+        if (!$this->accentsHaveBeenRemoved($term)) {
+            self::$termsWithoutAccents[$this->language][$term] = str_replace(
                 [
                     'á','à','â','ä','ã', 'å', 'À','Â','Ä','Ã', 'Å',
                     'ç','Ç',
@@ -151,22 +155,22 @@ class Term
             );
         }
 
-        return self::$termsWithoutAccents[$term];
+        return self::$termsWithoutAccents[$this->language][$term];
     }
 
-    public static function hasBeenValidated(string $term): bool
+    public function hasBeenValidated(string $term): bool
     {
-        return array_key_exists($term, self::$validatedTerms);
+        return array_key_exists($term, self::$validatedTerms[$this->language]);
     }
 
-    public static function isValid(string $term): bool
+    public function isValid(string $term): bool
     {
-        if (!self::hasBeenValidated($term)) {
-            self::$validatedTerms[$term] = strlen($term) > 2
+        if (!$this->hasBeenValidated($term)) {
+            self::$validatedTerms[$this->language][$term] = strlen($term) > 2
                 && !preg_match('/^((https?:\/\/)?(w{3}\.))/i', $term)
                 && preg_match('/^[\p{L}]/ui', $term);
         }
 
-        return self::$validatedTerms[$term];
+        return self::$validatedTerms[$this->language][$term];
     }
 }
