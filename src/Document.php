@@ -106,10 +106,51 @@ class Document
         return $this->terms[$term->stem]['count'];
     }
 
-    public static function extractWords(string $text)
+    public static function replaceEnglishContractions(string $text): string
     {
+        $apostrophes = '\'’´`';
+
+        $text = preg_replace([
+            '/(\s+|^)ain([' . $apostrophes . '|&#39;])t/i',
+            '/(\s+|^)won([' . $apostrophes . '|&#39;])t/i',
+            '/(\s+|^)shan([' . $apostrophes . '|&#39;])t/i',
+            '/(\s+|^)can([' . $apostrophes . '|&#39;])t/i',
+            '/(\s+|^)haven([' . $apostrophes . '|&#39;])t/i',
+        ], [
+            '$1am not',
+            '$1will not',
+            '$1shall not',
+            '$1cannot',
+            '$1have not'
+        ], $text);
+
+        $text = preg_replace(
+            '/(\s+|^)(could|is|are|should|ha(s|d)|must|do(es)?|were|would|did)n([' . $apostrophes . '|&#39;])t/i',
+            '$1$2 not',
+            $text
+        );
+
+        $text = preg_replace([
+            '/(\s+|^)(you|we|they)([' . $apostrophes . '|&#39;])re/i',
+            '/(\s+|^)(s?he|it)([' . $apostrophes . '|&#39;])s/i',
+            '/(\s+|^)(you|we|they|s?he|it|i)([' . $apostrophes . '|&#39;])ll/i'
+        ], [
+            '$1$2 are',
+            '$1$2 is',
+            '$1$2 will'
+        ], $text);
+
+        return $text;
+    }
+
+    public static function extractWords(string $text): array
+    {
+        $text = self::replaceEnglishContractions($text);
+
+        $noBreakSpace = chr(194) . chr(160);
+
         return preg_split(
-            '/(\s+)|(' . chr(194) . chr(160) . ')|(\s+.[\'’])|(,)/',
+            '/([\s,;:()\[\]{}"«»\'’´`…\/\\\!?¿•.]+|&#39;|' . $noBreakSpace . ')/',
             $text
         );
     }
