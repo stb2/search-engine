@@ -7,7 +7,7 @@
             "email": "alban@lencrenoire.com"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "alpha",
     "autoload": {
         "psr-4": {
             "Stb2\\SearchEngine\\": "src/"
