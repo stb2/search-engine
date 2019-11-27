@@ -15,6 +15,7 @@ class Term
     static $normalizedTerms = [];
     static $validatedTerms = [];
     static $stemmedTerms = [];
+    static $mispelledTermsWithCharacterRemoval = [];
 
     public function __construct(string $term, string $language = 'en')
     {
@@ -172,5 +173,70 @@ class Term
         }
 
         return self::$validatedTerms[$this->language][$term];
+    }
+
+    public static function split(string $term, int $splitLength = 0): array
+    {
+        return $splitLength > 0
+            ? array_reduce(
+                range(0, mb_strlen($term, 'UTF-8') - 1),
+                function ($chars, $offset) use ($term, $splitLength) {
+                    $chars[] = mb_substr($term, $offset, $splitLength, 'UTF-8');
+
+                    return $chars;
+                },
+                []
+            )
+            : preg_split("//u", $term, -1, PREG_SPLIT_NO_EMPTY);
+    }
+
+    public static function getMispelledTermsWithCharacterRemoval(
+        string $term,
+        int $distance = 1
+    ): array {
+        if ($distance < 1) {
+            return [$term];
+        }
+
+        $chars = self::split($term);
+        $length = count($chars);
+
+        if ($distance === 1) {
+            return array_map(function ($offset) use ($chars) {
+                return implode('', array_slice($chars, 0, $offset))
+                    . implode('', array_slice($chars, $offset + 1));
+            }, range(0, $length - 1));
+        }
+
+        $keyOfCachedResult = $term . '#' . $distance;
+
+        if (!array_key_exists(
+            $keyOfCachedResult,
+            self::$mispelledTermsWithCharacterRemoval
+        )) {
+            self::$mispelledTermsWithCharacterRemoval[$keyOfCachedResult]
+                = array_reduce(
+                    range(0, $length - $distance),
+                    function ($combinations, $offset) use ($chars, $distance) {
+                        $base = implode('', array_slice($chars, 0, $offset));
+
+                        return array_reduce(
+                            self::getMispelledTermsWithCharacterRemoval(
+                                implode('', array_slice($chars, $offset + 1)),
+                                $distance - 1
+                            ),
+                            function ($combinations, $subcombination) use ($base) {
+                                $combinations[] = $base . $subcombination;
+
+                                return $combinations;
+                            },
+                            $combinations
+                        );
+                    },
+                    []
+                );
+        }
+
+        return self::$mispelledTermsWithCharacterRemoval[$keyOfCachedResult];
     }
 }
