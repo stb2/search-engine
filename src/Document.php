@@ -146,11 +146,10 @@ class Document
     public static function extractWords(string $text): array
     {
         $text = self::replaceEnglishContractions($text);
-
         $noBreakSpace = chr(194) . chr(160);
 
         return preg_split(
-            '/([\s,;:()\[\]{}"«»\'’´`…\/\\\!?¿•.]+|&#39;|' . $noBreakSpace . ')/',
+            '/([\s,;:()\[\]{}"«»\'’´`…\/\\\!?¿.]+|•|&#39;|' . $noBreakSpace . ')/',
             $text
         );
     }
