@@ -19,21 +19,43 @@ class Term
 
     public function __construct(string $term, string $language = 'en')
     {
+        $this->bootLanguage($language);
+
+        $this->language = $language;
+        $this->original = $term;
+
+        // term without accented characters
+        $this->normalized = $this->removeAccents($this->normalize($term));
+
+        // stemming
+        $this->stem = $this->removeAccents(
+            $this->stem($this->normalize($term), $this->language)
+        );
+
+        // validation of the term:
+        // more than 2 characters long
+        // not a url
+        // and starts by a letter
+        $this->isValid = $this->isValid($this->normalized);
+    }
+
+    public function bootLanguage(string $language)
+    {
         array_map(function ($varname) use ($language) {
             if (!array_key_exists($language, self::${$varname})) {
                 self::${$varname}[$language] = [];
             }
-        }, ['termsWithoutAccents', 'normalizedTerms', 'validatedTerms', 'stemmedTerms']);
-
-        $this->language = $language;
-        $this->original = $term;
-        $this->normalized = $this->removeAccents($this->normalize($term));
-        $this->stem = $this->removeAccents($this->stem($this->normalize($term), $this->language));
-        $this->isValid = $this->isValid($this->normalized);
+        }, [
+            'termsWithoutAccents',
+            'normalizedTerms',
+            'validatedTerms',
+            'stemmedTerms'
+        ]);
     }
 
-    public function getInverseDocumentFrequency(DocumentCollection $collection): float
-    {
+    public function getInverseDocumentFrequency(
+        DocumentCollection $collection
+    ): float {
         $documentFrequency = $this->getDocumentFrequency($collection);
 
         if ($documentFrequency === 0) {
@@ -54,6 +76,16 @@ class Term
         );
     }
 
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function languageIs(string $alias): bool
+    {
+        return $this->language === $alias;
+    }
+
     public function getOriginal()
     {
         return $this->original;
@@ -71,7 +103,10 @@ class Term
 
     public function __get($varname)
     {
-        if (in_array($varname, ['original', 'normalized', 'isValid', 'stem'])) {
+        if (in_array(
+            $varname,
+            ['original', 'normalized', 'isValid', 'stem', 'language']
+        )) {
             $getter = 'get' . ucfirst($varname);
 
             if (method_exists($this, $getter)) {
@@ -198,13 +233,11 @@ class Term
             return [$term];
         }
 
-        $chars = self::split($term);
-        $length = count($chars);
+        $length = mb_strlen($term);
 
         if ($distance === 1) {
-            return array_map(function ($offset) use ($chars) {
-                return implode('', array_slice($chars, 0, $offset))
-                    . implode('', array_slice($chars, $offset + 1));
+            return array_map(function ($offset) use ($term) {
+                return mb_substr($term, 0, $offset) . mb_substr($term, $offset + 1);
             }, range(0, $length - 1));
         }
 
@@ -217,12 +250,12 @@ class Term
             self::$mispelledTermsWithCharacterRemoval[$keyOfCachedResult]
                 = array_reduce(
                     range(0, $length - $distance),
-                    function ($combinations, $offset) use ($chars, $distance) {
-                        $base = implode('', array_slice($chars, 0, $offset));
+                    function ($combinations, $offset) use ($distance, $term) {
+                        $base = mb_substr($term, 0, $offset);
 
                         return array_reduce(
                             self::getMispelledTermsWithCharacterRemoval(
-                                implode('', array_slice($chars, $offset + 1)),
+                                mb_substr($term, $offset + 1),
                                 $distance - 1
                             ),
                             function ($combinations, $subcombination) use ($base) {
