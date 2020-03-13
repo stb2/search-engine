@@ -149,7 +149,7 @@ class Document
         $noBreakSpace = chr(194) . chr(160);
 
         return preg_split(
-            '/([\s,;:()\[\]{}"«»\'’´`…\/\\\!?¿.]+|•|&#39;|' . $noBreakSpace . ')/',
+            '/\s|,|;|:|\(|\)|\[|\]\{|\|}|"|«|»|\'|’´|`|…|\/|\\\|!|\?|¿|\.|•|&#39;|' . $noBreakSpace . '/',
             $text
         );
     }
