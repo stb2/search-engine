@@ -2,6 +2,8 @@
 
 namespace Stb2\SearchEngine;
 
+use Normalizer;
+
 class Document
 {
     private $text;
@@ -25,7 +27,13 @@ class Document
         $this->text = str_replace(
             ['&#39;'],
             ['\''],
-            strip_tags(stripslashes(html_entity_decode($text)))
+            strip_tags(
+                stripslashes(
+                    html_entity_decode(
+                        Normalizer::normalize($text)
+                    )
+                )
+            )
         );
 
         $this->text = preg_replace('/([^\s.])\.([^\s.])/', '$1. $2', $this->text);

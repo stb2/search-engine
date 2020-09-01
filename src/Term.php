@@ -3,6 +3,7 @@
 namespace Stb2\SearchEngine;
 
 use Stb2\SearchEngine\Utils\Stemming;
+use Normalizer;
 
 class Term
 {
@@ -20,6 +21,8 @@ class Term
     public function __construct(string $term, string $language = 'en')
     {
         $this->bootLanguage($language);
+
+        $term = Normalizer::normalize($term);
 
         $this->language = $language;
         $this->original = $term;
